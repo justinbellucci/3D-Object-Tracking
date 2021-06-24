@@ -102,3 +102,82 @@ void detKeypointsShiTomasi(vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool b
         cv::waitKey(0);
     }
 }
+
+// Detect keypoints in an image using the Harris Method
+void detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis)
+{
+    // Detector parameters
+    int blockSize = 2; // for every pixel, a blockSize × blockSize neighborhood is considered
+    int aperatureSize = 3; // aperture parameter for Sobel operator (must be odd)
+    int minResponse = 100; // minimum value for a corner in the 8bit scaled response matrix
+    double k = 0.04; // Harris parameter (see equation for details)
+    double maxOverlap = 0.05; // used for NMS
+
+    // Detect Harris corners and normalize output 
+    cv::Mat dst, dstNorm, dstNormScaled;
+    dst = cv::Mat::zeros(img.size(), CV_32FC1);
+
+    double t = (double)cv::getTickCount();
+    cv::cornerHarris(img, dst, blockSize, aperatureSize, k, cv::BORDER_DEFAULT);
+    cv::normalize(dst, dstNorm, 0, 255, cv::NORM_MINMAX, CV_32FC1, cv::Mat());
+    cv::convertScaleAbs(dstNorm, dstNormScaled);
+
+    // locate local maxima in the Harris response matrix 
+    // and perform a non-maximum suppression (NMS) in a local  
+    // neighborhood around each maximum.
+
+    for(int j = 0; j < dstNorm.rows; j++)
+    {
+        for(int i = 0; i < dstNorm.cols; i++)
+        {
+            // response output from normalized Harris Detector
+            int response = (int)dstNorm.at<float>(j, i); // (row, col)
+            if(response > minResponse)
+            {
+                // store keypoint (pt), size, and response in newKeyPointObj
+                cv::KeyPoint newKeyPoint;
+                newKeyPoint.pt = cv::Point2f(i, j);
+                newKeyPoint.size = 2 * aperatureSize;
+                newKeyPoint.response = response;
+
+                bool isOverlap = false;
+
+                // perform NMS to reduce the number of keypoints displayed
+                for(auto it = keypoints.begin(); it < keypoints.end(); ++it)
+                {
+                    // calculate overlap. No overlap == 0
+                    double keyPtOverlap = cv::KeyPoint::overlap(newKeyPoint, *it);
+                    if(keyPtOverlap > maxOverlap)
+                        {
+                            isOverlap = true;
+                            // if overlap check response
+                            if(newKeyPoint.response > it->response)
+                            {
+                                *it = newKeyPoint;
+                                break;
+                            }
+                        }
+                }
+                // if no overlap add new keypoint 
+                if(!isOverlap)
+                    keypoints.push_back(newKeyPoint);
+            }
+        } // end of loop over cols
+    } // end of loop over rows
+
+    t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+    std::cout << "     Harris detection with n =" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms." << std::endl;
+
+    // visualize results
+    if(bVis)
+    {
+        string windowName = "Harris Corner Detection Results";
+        cv::namedWindow(windowName, 6); 
+        cv::Mat visImg = img.clone();
+        cv::drawKeypoints(img, keypoints, visImg, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+        cv::imshow(windowName, visImg);
+        cv::waitKey(0);
+    }
+}
+
+
