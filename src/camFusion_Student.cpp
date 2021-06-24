@@ -1,7 +1,8 @@
-
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <map>
+
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -159,5 +160,44 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
 {
-    // ...
+    // ... use keypoint matches between prev and curr frame - outer loop
+    // find which bounding boxes keypoints are enclosed in prev and curr frame - potential match candidates whose box id you can store in a multimap
+    // after loop keypoint matches
+        // find all match candidates in multimap that share the same box id in the prev frame and count them
+        // associate bounding boxes with higest number of occurances
+
+        // box ids of bounding boxes in bbBest matches
+
+    std::multimap<int, int> multiMap; // <currBoundingBoxID, prevBoundingBoxID> --- <key, value>
+    std::vector<int> curFrameBoxIDs;
+    double t = (double)cv::getTickCount();
+
+    // loop over all descriptor matches and select only keypoints in frames that match
+    for(auto it = matches.begin(); it < matches.end(); ++it)
+    {
+        cv::KeyPoint prevKeyPt = prevFrame.keypoints[it->queryIdx]; // previous frame
+        cv::KeyPoint currKeyPt = currFrame.keypoints[it->trainIdx]; // current frame
+
+        // loop through bounding boxes in prev and curr frames and see if they enclose the same keypoint
+        for(auto it1 = prevFrame.boundingBoxes.begin(); it1 < prevFrame.boundingBoxes.end(); ++it1)
+        {
+            for(auto it2 = currFrame.boundingBoxes.begin(); it2 < currFrame.boundingBoxes.end(); ++it2)
+            {
+                // keep track of the current frame bounding box ID
+                curFrameBoxIDs.push_back(it2->boxID);
+                // if prevFrame bounding box contains prevKeyPt && if currFrame boundinb box contains currKeyPt
+                // add the box ids to the multiMap
+                if(it1->roi.contains(prevKeyPt.pt) && it2->roi.contains(currKeyPt.pt))
+                {
+                    multiMap.insert({it2->boxID, it1->boxID}); // <currBoxID, prevBoxID>
+                }
+            } // end loop over curr frame bounding boxes
+        } // end loop over prev frame bounding boxes
+    } // end loop over matches
+
+    t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+    std::cout << "\tMatching Bounding Boxes execution time = " << 1000 * t / 1.0 << " ms." << std::endl;
+    
+    // for each ID in currFrameBox ID
+    
 }

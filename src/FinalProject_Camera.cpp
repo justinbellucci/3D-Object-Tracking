@@ -219,7 +219,6 @@ int main(int argc, const char *argv[])
             (dataBuffer.end() - 1)->kptMatches = matches;
 
             cout << "#7 : MATCH KEYPOINT DESCRIPTORS done" << endl;
-            continue;
             
             /* TRACK 3D OBJECT BOUNDING BOXES */
 
@@ -233,7 +232,7 @@ int main(int argc, const char *argv[])
             (dataBuffer.end()-1)->bbMatches = bbBestMatches;
 
             cout << "#8 : TRACK 3D OBJECT BOUNDING BOXES done" << endl;
-
+            continue;
 
             /* COMPUTE TTC ON OBJECT IN FRONT */
 
