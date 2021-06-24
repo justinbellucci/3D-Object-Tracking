@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <numeric>
 #include <map>
+#include <unordered_map>
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -128,7 +129,7 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
     string windowName = "3D Objects";
     cv::namedWindow(windowName, 1);
     cv::imshow(windowName, topviewImg);
-
+    
     if(bWait)
     {
         cv::waitKey(0); // wait for key to be pressed
@@ -169,7 +170,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
         // box ids of bounding boxes in bbBest matches
 
     std::multimap<int, int> multiMap; // <currBoundingBoxID, prevBoundingBoxID> --- <key, value>
-    std::vector<int> curFrameBoxIDs;
+    std::vector<int> currFrameBoxIDs;
     double t = (double)cv::getTickCount();
 
     // loop over all descriptor matches and select only keypoints in frames that match
@@ -183,21 +184,35 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
         {
             for(auto it2 = currFrame.boundingBoxes.begin(); it2 < currFrame.boundingBoxes.end(); ++it2)
             {
-                // keep track of the current frame bounding box ID
-                curFrameBoxIDs.push_back(it2->boxID);
-                // if prevFrame bounding box contains prevKeyPt && if currFrame boundinb box contains currKeyPt
+                // if prevFrame bounding box contains prevKeyPt && if currFrame bounding box contains currKeyPt
                 // add the box ids to the multiMap
                 if(it1->roi.contains(prevKeyPt.pt) && it2->roi.contains(currKeyPt.pt))
                 {
-                    multiMap.insert({it2->boxID, it1->boxID}); // <currBoxID, prevBoxID>
+                    multiMap.insert({it2->boxID, it1->boxID}); // <currFrameBoxID, prevFrameBoxID>
                 }
             } // end loop over curr frame bounding boxes
         } // end loop over prev frame bounding boxes
     } // end loop over matches
 
+    // keep track of the current frame bounding box ID
+    for(auto box : currFrame.boundingBoxes)
+    {
+        currFrameBoxIDs.push_back(box.boxID);
+    }
+    
     t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
     std::cout << "\tMatching Bounding Boxes execution time = " << 1000 * t / 1.0 << " ms." << std::endl;
     
-    // for each ID in currFrameBox ID
-    
+    // loop through Box IDs in current frame and record the most 
+    // frequent associated box ID for the previous frame
+    for(int ID : currFrameBoxIDs)
+    {
+        std::cout << "There are " << multiMap.count(ID) << " prevFrame BBoxIDs associated with the currFrame BBoxID " << ID << ":";
+        auto BBoxPairItr = multiMap.equal_range(ID);
+        for(auto itr = BBoxPairItr.first; itr != BBoxPairItr.second; ++itr)
+        {
+            std::cout << " " << itr->second;
+        }
+        std::cout << "\n";
+    }
 }
