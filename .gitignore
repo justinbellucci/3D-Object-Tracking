@@ -2,6 +2,9 @@
 build/
 cmake-build-debug/
 
+# VSCode
+.vscode
+
 # macOS
 .DS_Store
 
