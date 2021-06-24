@@ -69,8 +69,8 @@ int main(int argc, const char *argv[])
     P_rect_00.at<double>(2,0) = 0.000000e+00; P_rect_00.at<double>(2,1) = 0.000000e+00; P_rect_00.at<double>(2,2) = 1.000000e+00; P_rect_00.at<double>(2,3) = 0.000000e+00;    
 
     // keypoint detection 
-    string detectorType = "HARRIS"; // Classic Detectors -> SHITOMASI, HARRIS
-    // std::string detectorType = "FAST"; // Modern Detectors -> FAST, BRISK, ORB, AKAZE, SIFT
+    // string detectorType = "HARRIS"; // Classic Detectors -> SHITOMASI, HARRIS
+    std::string detectorType = "FAST"; // Modern Detectors -> FAST, BRISK, ORB, AKAZE, SIFT
     std::string descriptorType = "FREAK"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
   
     // misc
@@ -154,7 +154,6 @@ int main(int argc, const char *argv[])
         cv::Mat imgGray;
         cv::cvtColor((dataBuffer.end()-1)->cameraImg, imgGray, cv::COLOR_BGR2GRAY);
 
-        // TODO: Add more keypoint detectors
         // extract 2D keypoints from current image
         vector<cv::KeyPoint> keypoints; // create empty feature list for current image
 
@@ -170,7 +169,7 @@ int main(int argc, const char *argv[])
         {
             detKeypointsModern(keypoints, imgGray, detectorType, bVis);
         }
-        continue;
+        
         bVis = false;
 
         // optional : limit number of keypoints (helpful for debugging and learning)
@@ -194,17 +193,13 @@ int main(int argc, const char *argv[])
 
 
         /* EXTRACT KEYPOINT DESCRIPTORS */
-        // TODO: Add more descriptors
-
         cv::Mat descriptors;
-        string descriptorType = "BRISK"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
         descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorType);
 
         // push descriptors for current frame to end of data buffer
         (dataBuffer.end() - 1)->descriptors = descriptors;
 
         cout << "#6 : EXTRACT DESCRIPTORS done" << endl;
-
 
         if (dataBuffer.size() > 1) // wait until at least two images have been processed
         {
@@ -215,7 +210,6 @@ int main(int argc, const char *argv[])
             string matcherType = "MAT_BF";        // MAT_BF, MAT_FLANN
             string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
             string selectorType = "SEL_NN";       // SEL_NN, SEL_KNN
-            // TODO: Add midterm matching code
 
             matchDescriptors((dataBuffer.end() - 2)->keypoints, (dataBuffer.end() - 1)->keypoints,
                              (dataBuffer.end() - 2)->descriptors, (dataBuffer.end() - 1)->descriptors,
@@ -225,7 +219,7 @@ int main(int argc, const char *argv[])
             (dataBuffer.end() - 1)->kptMatches = matches;
 
             cout << "#7 : MATCH KEYPOINT DESCRIPTORS done" << endl;
-
+            continue;
             
             /* TRACK 3D OBJECT BOUNDING BOXES */
 
