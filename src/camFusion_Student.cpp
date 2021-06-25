@@ -127,13 +127,14 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
 
     // display image
     string windowName = "3D Objects";
-    cv::namedWindow(windowName, 1);
+    cv::namedWindow(windowName, 2);
     cv::imshow(windowName, topviewImg);
+    cv::waitKey(0);
     
-    if(bWait)
-    {
-        cv::waitKey(0); // wait for key to be pressed
-    }
+    // if(bWait)
+    // {
+    //     cv::waitKey(0); // wait for key to be pressed
+    // }
 }
 
 
@@ -225,5 +226,10 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
                           (const std::pair<int,int>& a, const std::pair<int,int>& b)->bool{ return a.second < b.second; } );
         // add pair to bbBestMatches
         bbBestMatches.insert({maxCount->first, ID}); // <prevFrameBoxID, currFrameBoxID>
+    }
+    // visualize the best matches for each boxID in the current frame
+    for(auto itr = bbBestMatches.begin(); itr != bbBestMatches.end(); ++itr)
+    {
+        std::cout << "Bounding boxes best matches : " << itr->first << "<--->" << itr->second << std::endl;
     }
 }
