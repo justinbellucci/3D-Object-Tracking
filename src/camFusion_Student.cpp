@@ -169,9 +169,11 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
 
         // box ids of bounding boxes in bbBest matches
 
-    std::multimap<int, int> multiMap; // <currBoundingBoxID, prevBoundingBoxID> --- <key, value>
+    std::multimap<int, int> mMap; // <currBoundingBoxID, prevBoundingBoxID> --- <key, value>
     std::vector<int> currFrameBoxIDs;
     double t = (double)cv::getTickCount();
+    int prevBoxID;
+    int currBoxID;
 
     // loop over all descriptor matches and select only keypoints in frames that match
     for(auto it = matches.begin(); it < matches.end(); ++it)
@@ -179,19 +181,25 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
         cv::KeyPoint prevKeyPt = prevFrame.keypoints[it->queryIdx]; // previous frame
         cv::KeyPoint currKeyPt = currFrame.keypoints[it->trainIdx]; // current frame
 
-        // loop through bounding boxes in prev and curr frames and see if they enclose the same keypoint
+        // loop through bounding boxes in prevFrame and check if any contain the prevKayPt
         for(auto it1 = prevFrame.boundingBoxes.begin(); it1 < prevFrame.boundingBoxes.end(); ++it1)
         {
-            for(auto it2 = currFrame.boundingBoxes.begin(); it2 < currFrame.boundingBoxes.end(); ++it2)
+            if(it1->roi.contains(prevKeyPt.pt))
             {
-                // if prevFrame bounding box contains prevKeyPt && if currFrame bounding box contains currKeyPt
-                // add the box ids to the multiMap
-                if(it1->roi.contains(prevKeyPt.pt) && it2->roi.contains(currKeyPt.pt))
-                {
-                    multiMap.insert({it2->boxID, it1->boxID}); // <currFrameBoxID, prevFrameBoxID>
-                }
-            } // end loop over curr frame bounding boxes
-        } // end loop over prev frame bounding boxes
+                prevBoxID = it1->boxID;
+            }
+        } // end loop over prevFrame bounding boxes
+        
+        for(auto it2 = currFrame.boundingBoxes.begin(); it2 < currFrame.boundingBoxes.end(); ++it2)
+        {
+            if(it2->roi.contains(currKeyPt.pt))
+            {
+                currBoxID = it2->boxID;
+            }
+        } // end loop over currFame bounding boxes   
+
+        mMap.insert({currBoxID, prevBoxID});
+
     } // end loop over matches
 
     // keep track of the current frame bounding box ID
@@ -205,14 +213,17 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
     
     // loop through Box IDs in current frame and record the most 
     // frequent associated box ID for the previous frame
+    std::unordered_map<int, int> freqMap; // <prevBoxID, count>
     for(int ID : currFrameBoxIDs)
     {
-        std::cout << "There are " << multiMap.count(ID) << " prevFrame BBoxIDs associated with the currFrame BBoxID " << ID << ":";
-        auto BBoxPairItr = multiMap.equal_range(ID);
+        auto BBoxPairItr = mMap.equal_range(ID); // ID == currBoxID
         for(auto itr = BBoxPairItr.first; itr != BBoxPairItr.second; ++itr)
         {
-            std::cout << " " << itr->second;
+            freqMap[itr->second]++;
         }
-        std::cout << "\n";
+        std::unordered_map<int, int>::iterator maxCount = std::max_element(freqMap.begin(),freqMap.end(),[] 
+                          (const std::pair<int,int>& a, const std::pair<int,int>& b)->bool{ return a.second < b.second; } );
+        // add pair to bbBestMatches
+        bbBestMatches.insert({maxCount->first, ID}); // <prevFrameBoxID, currFrameBoxID>
     }
 }
