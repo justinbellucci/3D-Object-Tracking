@@ -162,14 +162,6 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
 {
-    // ... use keypoint matches between prev and curr frame - outer loop
-    // find which bounding boxes keypoints are enclosed in prev and curr frame - potential match candidates whose box id you can store in a multimap
-    // after loop keypoint matches
-        // find all match candidates in multimap that share the same box id in the prev frame and count them
-        // associate bounding boxes with higest number of occurances
-
-        // box ids of bounding boxes in bbBest matches
-
     std::multimap<int, int> mMap; // <currBoundingBoxID, prevBoundingBoxID> --- <key, value>
     std::vector<int> currFrameBoxIDs;
     double t = (double)cv::getTickCount();
@@ -222,6 +214,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
         {
             freqMap[itr->second]++;
         }
+        // return the prevBoxID that has the most occurances of keypoints within
         std::unordered_map<int, int>::iterator maxCount = std::max_element(freqMap.begin(),freqMap.end(),[] 
                           (const std::pair<int,int>& a, const std::pair<int,int>& b)->bool{ return a.second < b.second; } );
         // add pair to bbBestMatches
