@@ -129,12 +129,12 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
     string windowName = "3D Objects";
     cv::namedWindow(windowName, 2);
     cv::imshow(windowName, topviewImg);
-    cv::waitKey(0);
+    // cv::waitKey(0);
     
-    // if(bWait)
-    // {
-    //     cv::waitKey(0); // wait for key to be pressed
-    // }
+    if(bWait)
+    {
+        cv::waitKey(0); // wait for key to be pressed
+    }
 }
 
 
@@ -157,6 +157,34 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
 {
     // ...
+    // consider the closest lidar points in the x direction from the ego vehicle.
+    // use only lidar points that are stable and reliable rather than 
+    // some extraneous point that is an outlier.
+    double laneWidth = 4.0; // assumed width of ego lane
+    double DT = frameRate / 1000;
+    // find closest distance to Lidar points within ego lane
+    // TODO: add filter to remove outliers
+    double minXPrev = 1e9;
+    double minXCurr = 1e9;
+    
+    for(auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
+    {
+        if(abs(it->y) <= laneWidth / 2.0)
+        {
+            minXPrev = minXPrev > it->x ? it->x : minXPrev;
+        }
+    }
+
+    for(auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
+    {
+        if(abs(it->y) <= laneWidth / 2.0)
+        {
+            minXCurr = minXCurr > it->x ? it->x : minXCurr;
+        }
+    }
+
+    // Compute TTC based on the Constant Velocity Model (CVM)
+    TTC = minXCurr * DT / (minXPrev - minXCurr);
 }
 
 

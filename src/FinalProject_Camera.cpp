@@ -70,8 +70,8 @@ int main(int argc, const char *argv[])
 
     // keypoint detection 
     // string detectorType = "HARRIS"; // Classic Detectors -> SHITOMASI, HARRIS
-    std::string detectorType = "FAST"; // Modern Detectors -> FAST, BRISK, ORB, AKAZE, SIFT
-    std::string descriptorType = "FREAK"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+    std::string detectorType = "ORB"; // Modern Detectors -> FAST, BRISK, ORB, AKAZE, SIFT
+    std::string descriptorType = "ORB"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
   
     // misc
     double sensorFrameRate = 10.0 / imgStepWidth; // frames per second for Lidar and camera
@@ -111,7 +111,6 @@ int main(int argc, const char *argv[])
                       yoloBasePath, yoloClassesFile, yoloModelConfiguration, yoloModelWeights, bVis);
 
         cout << "#2 : DETECT & CLASSIFY OBJECTS done" << endl;
-        bVis = true;
 
         /* CROP LIDAR POINTS */
 

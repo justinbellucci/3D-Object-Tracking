@@ -288,7 +288,7 @@ void detKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, std:
     if(bVis)
     {
         string windowName = detectorType + " Keypoint Detector";
-        cv::namedWindow(windowName, 6);
+        cv::namedWindow(windowName, 1);
         cv::Mat visImg = img.clone();
         cv::drawKeypoints(img, keypoints, visImg, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
         cv::imshow(windowName, visImg);
