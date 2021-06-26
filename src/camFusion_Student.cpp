@@ -152,41 +152,37 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
     // ...
 }
 
+// sort lidar points based on X distance from ego vehicle to point
+void sortLidarPoints(std::vector<LidarPoint> &lidarPoints)
+{
+    std::sort(lidarPoints.begin(), lidarPoints.end(), [](LidarPoint a, LidarPoint b)
+    {
+        return a.x < b.x;
+    });
+}
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
 {
-    // ...
-    // consider the closest lidar points in the x direction from the ego vehicle.
-    // use only lidar points that are stable and reliable rather than 
-    // some extraneous point that is an outlier.
-    double laneWidth = 4.0; // assumed width of ego lane
-    double DT = frameRate / 1000;
-    // find closest distance to Lidar points within ego lane
-    // TODO: add filter to remove outliers
-    double minXPrev = 1e9;
-    double minXCurr = 1e9;
+    // double laneWidth = 4.0; // assumed width of ego lane
+    double DT = 1.0 / frameRate; // time between frames (seconds)
     
-    for(auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
-    {
-        if(abs(it->y) <= laneWidth / 2.0)
-        {
-            minXPrev = minXPrev > it->x ? it->x : minXPrev;
-        }
-    }
+    // use the median lidar point to reduce the affect of outliers
+    // first by sorting all the lidar points in each frame 
+    sortLidarPoints(lidarPointsPrev); // sort previous lidar points
+    sortLidarPoints(lidarPointsCurr); // sort current lidar points
 
-    for(auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
-    {
-        if(abs(it->y) <= laneWidth / 2.0)
-        {
-            minXCurr = minXCurr > it->x ? it->x : minXCurr;
-        }
-    }
-
-    // Compute TTC based on the Constant Velocity Model (CVM)
-    TTC = minXCurr * DT / (minXPrev - minXCurr);
+    // use the median lidar point
+    double d0 = lidarPointsPrev[floor(lidarPointsPrev.size() / 2)].x;
+    double d1 = lidarPointsCurr[floor(lidarPointsCurr.size() / 2)].x;
+    
+    // Compute TTC based on the Constant Velocity Model (CVM) where:
+    //      DT = time between frames in seconds
+    //      d0 = distance between ego vehicle and lidar point in previous frame
+    //      d1 = distance between ego vehicle nad lidar point in current frame
+    //      TTC = d1 * DT / (d0 - d1)
+    TTC = d1 * DT / (d0 - d1);
 }
-
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
 {
