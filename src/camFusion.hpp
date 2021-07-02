@@ -18,9 +18,4 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
                       std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg=nullptr);
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC);                  
-
-void clusterProximity(int idx, std::vector<LidarPoint> &lidarPoints, std::vector<double> &cluster, std::vector<bool> &isProcessed, KdTree* tree, float clusterTolerance);
-
-std::vector<std::vector<LidarPoint>> clusterLidar(std::vector<LidarPoint> &lidarPoints, float clusterTolerance, int minSize, int maxSize);
-
 #endif /* camFusion_hpp */

@@ -155,97 +155,51 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
 // sort lidar points based on X distance from ego vehicle to point
 void sortLidarPoints(std::vector<LidarPoint> &lidarPoints)
 {
-    std::sort(lidarPoints.begin(), lidarPoints.end(), [](LidarPoint a, LidarPoint b)
+    std::sort(lidarPoints.begin(), lidarPoints.end(), [](LidarPoint &a, LidarPoint &b)
     {
         return a.x < b.x;
     });
 }
 
-void clusterProximity(int idx, std::vector<LidarPoint> &lidarPoints, std::vector<double> &cluster, std::vector<bool> &isProcessed, KdTree* tree, float clusterTolerance)
+// calculate the standard deviation and mean of the x lidar point
+std::pair<double, double> statsFn(std::vector<LidarPoint> &lidarPoints)
 {
-    isProcessed[idx] = true;
-    cluster.push_back(idx);
-    std::vector<double> point{lidarPoints[idx].x, lidarPoints[idx].y, lidarPoints[idx].z};
-    std::vector<int> nearestPoints = tree->search(point, clusterTolerance);
-    std::cout << "Nearest points size = " << nearestPoints.size() << std::endl;
-
-    for(int id : nearestPoints)
-    {
-        if(!isProcessed[id])
-            clusterProximity(id, lidarPoints, cluster, isProcessed, tree, clusterTolerance);
-    }
+    auto sumX = [](const double sum, const LidarPoint &pt){ return sum + pt.x;};
+    double sum = std::accumulate(lidarPoints.begin(), lidarPoints.end(), 0.0, sumX);
+    double mean = sum / lidarPoints.size();
+    auto varXfn = [mean](const double var, const LidarPoint &pt){ return var + pow(pt.x - mean, 2);};
+    double varX = std::accumulate(lidarPoints.begin(), lidarPoints.end(), 0.0, varXfn);
+    double stdev = sqrt(varX/lidarPoints.size());
+    return std::make_pair(stdev, mean);
 }
-
-std::vector<std::vector<LidarPoint>> clusterLidar(std::vector<LidarPoint> &lidarPoints, float clusterTolerance, int minSize, int maxSize)
-{
-    std::cout << "Starting to cluster with cloud size of " << lidarPoints.size() << std::endl;
-    
-    std::vector<std::vector<LidarPoint>> clusters;
-    KdTree* tree = new KdTree;
-    std::vector<std::vector<double>> clusterIndices;
-    std::vector<bool> isProcessed(lidarPoints.size(), false);
-
-    // insert point into KdTree
-    for(int i=0; i < lidarPoints.size(); i++)
-    {
-        std::vector<double> point{lidarPoints[i].x, lidarPoints[i].y, lidarPoints[i].z};
-        tree->insert(point, i);
-    }
-    int idx = 0;
-    while(idx < lidarPoints.size())
-    {
-        if(isProcessed[idx])
-        {
-            idx++;
-            continue;
-        }
-        std::vector<double> cluster;
-        clusterProximity(idx, lidarPoints, cluster, isProcessed, tree, clusterTolerance);
-        // if(cluster.size() >= minSize && cluster.size() <= maxSize)
-        clusterIndices.push_back(cluster);
-        idx++;
-    }
-
-    for(auto& elem : clusterIndices)
-    {
-        std::vector<LidarPoint> newCluster;
-        for(int idx : elem)
-            newCluster.push_back(lidarPoints[idx]);
-
-        clusters.push_back(newCluster);
-    }
-    std::cout << "cluster size = " << clusters.size() << std::endl;
-    return clusters;
-}
-
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
 {
-
-    std::vector<std::vector<LidarPoint>> clusters = clusterLidar(lidarPointsPrev, 0.1, 20, 100);
-        for(std::vector<LidarPoint> clust : clusters)
-        {
-            std::cout << "Cluster with " << clust.size() << " lidar points." << std::endl;
-        }
+   
     // double laneWidth = 4.0; // assumed width of ego lane
     double DT = 1.0 / frameRate; // time between frames (seconds)
     
-    // use the median lidar point to reduce the affect of outliers
-    // first by sorting all the lidar points in each frame 
-    sortLidarPoints(lidarPointsPrev); // sort previous lidar points
-    sortLidarPoints(lidarPointsCurr); // sort current lidar points
+    std::pair<double, double> statsPrev = statsFn(lidarPointsPrev);
+    std::pair<double, double> statsCurr = statsFn(lidarPointsCurr);
+    std::cout << "Prev stdev = " << statsPrev.second << std::endl;
+    std::cout << "Curr stdev = " << statsCurr.first << std::endl;
 
-    // use the median lidar point
-    double d0 = lidarPointsPrev[floor(lidarPointsPrev.size() / 2)].x;
-    double d1 = lidarPointsCurr[floor(lidarPointsCurr.size() / 2)].x; 
-    
+    double avgPrevX = 0;
+    double avgCurrX = 0;
+    // check if the lidar point is within one standard deviation of mean
+    // if not, don't use it in the computation for d0 and d1
+    for(auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
+    {
+        
+    }
+
     // Compute TTC based on the Constant Velocity Model (CVM) where:
     //      DT = time between frames in seconds
     //      d0 = distance between ego vehicle and lidar point in previous frame
     //      d1 = distance between ego vehicle nad lidar point in current frame
     //      TTC = d1 * DT / (d0 - d1)
-    TTC = d1 * DT / (d0 - d1);
+    // TTC = currX * DT / (prevX - currX);
 }
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
