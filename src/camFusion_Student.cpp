@@ -161,15 +161,17 @@ void sortLidarPoints(std::vector<LidarPoint> &lidarPoints)
     });
 }
 
-// calculate the standard deviation and mean of the x lidar point
+// calculate the standard deviation and mean of the x lidar point in current set
 std::pair<double, double> statsFn(std::vector<LidarPoint> &lidarPoints)
 {
-    auto sumX = [](const double sum, const LidarPoint &pt){ return sum + pt.x;};
-    double sum = std::accumulate(lidarPoints.begin(), lidarPoints.end(), 0.0, sumX);
+    auto sumXfn = [](const double sum, const LidarPoint &pt){ return sum + pt.x;};
+    double sum = std::accumulate(lidarPoints.begin(), lidarPoints.end(), 0.0, sumXfn);
     double mean = sum / lidarPoints.size();
-    auto varXfn = [mean](const double var, const LidarPoint &pt){ return var + pow(pt.x - mean, 2);};
-    double varX = std::accumulate(lidarPoints.begin(), lidarPoints.end(), 0.0, varXfn);
-    double stdev = sqrt(varX/lidarPoints.size());
+
+    auto sumSqares = [mean](const double var, const LidarPoint &pt){ return var + pow(pt.x - mean, 2);};
+    double var = std::accumulate(lidarPoints.begin(), lidarPoints.end(), 0.0, sumSqares) / lidarPoints.size();
+
+    double stdev = sqrt(var);
     return std::make_pair(stdev, mean);
 }
 
@@ -180,26 +182,43 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
     // double laneWidth = 4.0; // assumed width of ego lane
     double DT = 1.0 / frameRate; // time between frames (seconds)
     
-    std::pair<double, double> statsPrev = statsFn(lidarPointsPrev);
+    // return the standard deviation and mean of the point cloud <--> <stdev, mean>
+    std::pair<double, double> statsPrev = statsFn(lidarPointsPrev); 
     std::pair<double, double> statsCurr = statsFn(lidarPointsCurr);
-    std::cout << "Prev stdev = " << statsPrev.second << std::endl;
-    std::cout << "Curr stdev = " << statsCurr.first << std::endl;
 
     double avgPrevX = 0;
     double avgCurrX = 0;
+    int countPrev = 0;
+    int countCurr = 0;
     // check if the lidar point is within one standard deviation of mean
     // if not, don't use it in the computation for d0 and d1
     for(auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
     {
-        
+        // add up if within one standard deviation of the mean
+        if(it->x <= (statsPrev.second + statsPrev.first) && it->x >= (statsPrev.second - statsPrev.first))
+        {
+            avgPrevX += it->x;
+            countPrev++;
+        }
     }
+    avgPrevX /= countPrev;
+    
+    for(auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
+    {
+        if(it->x <= (statsCurr.second + statsPrev.first) && it->x >= (statsCurr.second - statsCurr.first))
+        {
+            avgCurrX += it->x;
+            countCurr++;
+        }
+    }
+    avgCurrX /= countCurr;
 
     // Compute TTC based on the Constant Velocity Model (CVM) where:
     //      DT = time between frames in seconds
     //      d0 = distance between ego vehicle and lidar point in previous frame
     //      d1 = distance between ego vehicle nad lidar point in current frame
     //      TTC = d1 * DT / (d0 - d1)
-    // TTC = currX * DT / (prevX - currX);
+    TTC = avgCurrX * DT / (avgPrevX - avgCurrX);
 }
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
