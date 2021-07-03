@@ -137,13 +137,35 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
     }
 }
 
+double euclideanDistCalc(const cv::Point2f keyPtPrev, const cv::Point2f keyPtCurr)
+{
+    return sqrt(pow(keyPtCurr.x - keyPtPrev.x, 2) + pow(keyPtCurr.y - keyPtPrev.y, 2));
+}
 
 // associate a given bounding box with the keypoints it contains
 void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, std::vector<cv::DMatch> &kptMatches)
 {
-    // ...
-}
+    // calculate the mean euclidean distance between keypoint matches
+    auto distSumFn = [kptsPrev, kptsCurr](const double sum, cv::DMatch match){
+        const auto prev = kptsPrev[match.queryIdx].pt;
+        const auto curr = kptsCurr[match.trainIdx].pt;
+        return sum + sqrt(pow(curr.x - prev.x, 2) + pow(curr.y - prev.y, 2));
+    };
+    double euclideanDistMean = std::accumulate(kptMatches.begin(), kptMatches.end(), 0.0, distSumFn) / kptMatches.size();
+    std::cout << "Mean dist btw keypoints is " << euclideanDistMean << std::endl;
+    // check if keypoint match is in the ROI of the current bounding box
+    for(auto it = kptMatches.begin(); it != kptMatches.end(); ++it)
+    {
+        const auto keyPtPrev = kptsPrev[it->queryIdx].pt;
+        const auto keyPtCurr = kptsCurr[it->queryIdx].pt;
 
+        if(boundingBox.roi.contains(keyPtCurr) && euclideanDistCalc(keyPtPrev, keyPtCurr) <= euclideanDistMean * 1.4)
+        {
+            boundingBox.kptMatches.push_back(*it);
+        }
+    } // end loop over kptMatches
+    std::cout << "Selected keypoint matches = " << boundingBox.kptMatches.size() << std::endl;
+}
 
 // Compute time-to-collision (TTC) based on keypoint correspondences in successive images
 void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, 
