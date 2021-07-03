@@ -157,7 +157,7 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
     for(auto it = kptMatches.begin(); it != kptMatches.end(); ++it)
     {
         const auto keyPtPrev = kptsPrev[it->queryIdx].pt;
-        const auto keyPtCurr = kptsCurr[it->queryIdx].pt;
+        const auto keyPtCurr = kptsCurr[it->trainIdx].pt;
 
         if(boundingBox.roi.contains(keyPtCurr) && euclideanDistCalc(keyPtPrev, keyPtCurr) <= euclideanDistMean * 1.4)
         {
@@ -171,7 +171,51 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
 void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, 
                       std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg)
 {
-    // ...
+    // compute distance ratios between all matched keypoints
+    std::vector<double> distRatios;
+    // outer keypoint loop
+    for(auto it1 = kptMatches.begin(); it1 != kptMatches.end() - 1; ++it1)
+    { 
+        // get current keypoint pair
+        cv::KeyPoint keyPtOutCurr = kptsCurr.at(it1->trainIdx);
+        cv::KeyPoint keyPtOutPrev = kptsPrev.at(it1->queryIdx);
+
+        // inner keypoint loop
+        for(auto it2 = kptMatches.begin() + 1; it2 != kptMatches.end(); ++it2)
+        {
+            double minDist = 100.0; // min required distance
+
+            // get next keypoint and matched partner
+            cv::KeyPoint keyPtInCurr = kptsCurr.at(it2->trainIdx);
+            cv::KeyPoint keyPtInPrev = kptsPrev.at(it2->queryIdx);
+
+            // compute distance ratios
+            double distCurr = cv::norm(keyPtOutCurr.pt - keyPtInCurr.pt);
+            double distPrev = cv::norm(keyPtOutPrev.pt - keyPtInPrev.pt);
+
+            // avoid division by zero with numeric_limits
+            if(distPrev > std::numeric_limits<double>::epsilon() && distCurr >= minDist)
+            {
+                double distRatio = distCurr / distPrev;
+                distRatios.push_back(distRatio);
+            }
+        }// end inner loop
+    } // end outer loop
+
+    if(distRatios.size() == 0)
+    {
+        TTC = NAN;
+        return;
+    }
+
+    // compute mean distance ratios
+    double meanDistRatio = std::accumulate(distRatios.begin(), distRatios.end(), 0.0) / distRatios.size();
+    double DT = 1.0 / frameRate;
+    long medianIdx = floor(distRatios.size() / 2.0);
+    std::sort(distRatios.begin(), distRatios.end());
+    double medianDistRatios = distRatios.at(medianIdx);
+
+    TTC = -DT / (1 - medianDistRatios);
 }
 
 // sort lidar points based on X distance from ego vehicle to point
