@@ -159,7 +159,7 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
         const auto keyPtPrev = kptsPrev[it->queryIdx].pt;
         const auto keyPtCurr = kptsCurr[it->trainIdx].pt;
 
-        if(boundingBox.roi.contains(keyPtCurr) && euclideanDistCalc(keyPtPrev, keyPtCurr) <= euclideanDistMean * 1.4)
+        if(boundingBox.roi.contains(keyPtCurr) && euclideanDistCalc(keyPtPrev, keyPtCurr) <= euclideanDistMean * 2.0)
         {
             boundingBox.kptMatches.push_back(*it);
         }
@@ -348,8 +348,9 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
         bbBestMatches.insert({maxCount->first, ID}); // <prevFrameBoxID, currFrameBoxID>
     }
     // visualize the best matches for each boxID in the current frame
-    for(auto itr = bbBestMatches.begin(); itr != bbBestMatches.end(); ++itr)
-    {
-        std::cout << "Bounding boxes best matches : " << itr->first << "<--->" << itr->second << std::endl;
-    }
+    // for(auto itr = bbBestMatches.begin(); itr != bbBestMatches.end(); ++itr)
+    // {
+    //     std::cout << "Bounding boxes best matches : " << itr->first << "<--->" << itr->second << std::endl;
+    // }
 }
+
