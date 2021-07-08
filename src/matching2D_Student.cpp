@@ -102,7 +102,7 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
     // SIFT
     else
     {
-        extractor = cv::SiftDescriptorExtractor::create();
+        extractor = cv::SIFT::create();
     }
 
     // perform feature extraction
