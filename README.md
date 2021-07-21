@@ -6,6 +6,7 @@ This final project for Udacity's Sensor Fusion Camera course demonstrates variou
 <img src="images/Kypt_traffic.gif" width="800">
 
 ## Dependencies for Running Locally
+
 The following dependencies are required to run the program locally.
 * cmake >= 3.17
   * All OSes: [click here for installation instructions](https://cmake.org/install/)
