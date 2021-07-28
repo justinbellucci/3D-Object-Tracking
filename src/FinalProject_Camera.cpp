@@ -69,9 +69,9 @@ int main(int argc, const char *argv[])
     P_rect_00.at<double>(2,0) = 0.000000e+00; P_rect_00.at<double>(2,1) = 0.000000e+00; P_rect_00.at<double>(2,2) = 1.000000e+00; P_rect_00.at<double>(2,3) = 0.000000e+00;    
 
     // keypoint detection 
-    // string detectorType = "HARRIS"; // Classic Detectors -> SHITOMASI, HARRIS
-    std::string detectorType = "SIFT"; // Modern Detectors -> FAST, BRISK, ORB, AKAZE, SIFT
-    std::string descriptorType = "SIFT"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+    // string detectorType = "SHITOMASI"; // Classic Detectors -> SHITOMASI, HARRIS
+    std::string detectorType = "AKAZE"; // Modern Detectors -> FAST, BRISK, ORB, AKAZE, SIFT
+    std::string descriptorType = "AKAZE"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
   
     // misc
     double sensorFrameRate = 10.0 / imgStepWidth; // frames per second for Lidar and camera
